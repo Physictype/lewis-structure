@@ -212,10 +212,12 @@ class LewisStructure {
         this.bonds = [[]];
         this.loneElectrons = [0];
     }
-    addAtom(chemicalSymbol, bondedTo) {
+    addAtom(chemicalSymbol, bondedTo,bondOrder) {
         this.atoms.push(chemicalSymbol);
         this.bonds.push([])
-        this.bonds[this.atoms.length-1].push(bondedTo);
+        for (let i = 0; i < bondOrder; i++) {
+            this.bonds[this.atoms.length-1].push(bondedTo);
+        }
         this.loneElectrons.push(0);
     }
     popAtom() {
@@ -264,6 +266,7 @@ class LewisStructure {
 let globalBestLewis;
 let sumFormalCharge = Infinity;
 let maxFormalCharge = Infinity;
+let minDistance = Infinity;
 let totalElectrons = 0;
 function lewis(formula) {
     sumFormalCharge = Infinity;
@@ -294,18 +297,38 @@ function calculateMaxAbsFormalCharge(structure) {
     }
     return charge;
 }
+function calculateDistanceToOctetDuet(structure) {
+    let distance = 0;
+    for (let i = 0; i < structure.atoms.length; i++) {
+        let numBonds = structure.getNumBonds(i);
+        let numLones = structure.loneElectrons[i];
+        distance += Math.abs(((structure.atoms[i]=="H"||structure.atoms[i]=="He") ? 2 : 8)-numBonds*2-numLones);
+    }
+    return distance;
+}
 function recursiveAddElectrons(structure,num) {
+    if (num < 0) {
+        return;
+    }
     if (num == 0) {
+        let distance = calculateDistanceToOctetDuet(structure);
         let fc = calculateSumFormalCharge(structure);
         let mafc = calculateMaxAbsFormalCharge(structure);
-        if (Math.abs(fc) < sumFormalCharge) {
-            sumFormalCharge = JSON.parse(JSON.stringify(fc));
+        if (distance < minDistance) {
+            minDistance = distance;
             globalBestLewis = JSON.parse(JSON.stringify(structure));
-            maxFormalCharge = mafc
-        } else if (Math.abs(fc) == sumFormalCharge) {
-            if (mafc < maxFormalCharge) {
-                maxFormalCharge = mafc;
+            sumFormalCharge = fc;
+            maxFormalCharge = mafc;
+        } else if (distance == minDistance) {
+            if (Math.abs(fc) < sumFormalCharge) {
+                sumFormalCharge = JSON.parse(JSON.stringify(fc));
                 globalBestLewis = JSON.parse(JSON.stringify(structure));
+                maxFormalCharge = mafc
+            } else if (Math.abs(fc) == sumFormalCharge) {
+                if (mafc < maxFormalCharge) {
+                    maxFormalCharge = mafc;
+                    globalBestLewis = JSON.parse(JSON.stringify(structure));
+                }
             }
         }
         return;
@@ -323,8 +346,10 @@ function recursiveAtomLewis(currentStructure,atomsLeft) {
         return;
     }
     for (let i = 0; i < currentStructure.atoms.length; i++) {
-        currentStructure.addAtom(atomsLeft[0], i);
-        recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1));
-        currentStructure.popAtom();
+        for (let j = 1; j <= 3; j++) {
+            currentStructure.addAtom(atomsLeft[0], i,j);
+            recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1));
+            currentStructure.popAtom();
+        }
     }
 }
