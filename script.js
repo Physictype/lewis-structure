@@ -306,6 +306,8 @@ function calculateDistanceToOctetDuet(structure) {
     }
     return distance;
 }
+
+// TODO: ONLY DO THIS IF NEEDED (I.E. WHEN PROCESSING IS FINISHED)
 function recursiveAddElectrons(structure,num) {
     if (num < 0) {
         return;
