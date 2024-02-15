@@ -152,7 +152,6 @@ function setup() {
 }
 document.getElementById("submit").onclick = (e) => {
     e.preventDefault();
-    console.log("GLOOPY");
     let formula = document.getElementById("formula").value;
     let l = lewis(formula);
     print(l);
@@ -162,12 +161,19 @@ document.getElementById("submit").onclick = (e) => {
 function renderLewis(structure) {
     let stepDistance = 100;
     text(structure.atoms[0],0,0);
-    console.log(structure.getNumBondsNoMultiplicity(0));
-    let numAED = [structure.getNumBondsNoMultiplicity(0)];
+    let numAED = [structure.getNumBondsNoMultiplicity(0)+Math.ceil(structure.loneElectrons[0]/2)];
     let numFilled = [0];
     let positions = [[0,0]];
     let offset = [0]
     for (let j = 0; j < Math.ceil(structure.loneElectrons[0]/2); j ++) {
+        let otherTheta = -(numFilled[0])/numAED[0]*2*PI;
+        if (structure.loneElectrons[0] % 2 == 0 || j < Math.ceil(structure.loneElectrons[0]/2)-1) {
+            ellipse(35*Math.cos(otherTheta)+8*Math.sin(-otherTheta),35*Math.sin(otherTheta)+8*Math.cos(-otherTheta),5,5);
+            ellipse(35*Math.cos(otherTheta)-8*Math.sin(-otherTheta),35*Math.sin(otherTheta)-8*Math.cos(-otherTheta),5,5);
+            // ellipse(25*Math.cos(otherTheta),25*Math.sin(otherTheta),5,5);
+        } else {
+            ellipse(25*Math.cos(otherTheta),25*Math.sin(otherTheta),5,5);
+        }
         numFilled[0] += 1;
     }
     for (let i = 1; i < structure.atoms.length; i++) {
@@ -182,13 +188,12 @@ function renderLewis(structure) {
             line(positions[structure.bonds[i][0]][0]+30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(theta),positions[structure.bonds[i][0]][1]+30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta),pos[0]-30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(theta),pos[1]-30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta));
         }
         numFilled[structure.bonds[i][0]] += 1;
-        console.log(numAED[i]);
         for (let j = 0; j < Math.ceil(structure.loneElectrons[i]/2); j ++) {
-            console.log(numFilled[i]);
-            let otherTheta = theta-(1+numFilled[i])/numAED[i]*2*PI;
+            let otherTheta = theta+(numFilled[i])/numAED[i]*2*PI+PI;
             if (structure.loneElectrons[i] % 2 == 0 || j < Math.ceil(structure.loneElectrons[i]/2)-1) {
-                ellipse(pos[0]+25*Math.cos(otherTheta)+8*Math.sin(otherTheta),pos[1]+25*Math.sin(otherTheta)+8*Math.cos(otherTheta),5,5);
-                ellipse(pos[0]+25*Math.cos(otherTheta)-8*Math.sin(otherTheta),pos[1]+25*Math.sin(otherTheta)-8*Math.cos(otherTheta),5,5);
+                ellipse(pos[0]+30*Math.cos(otherTheta)+8*Math.sin(-otherTheta),pos[1]+30*Math.sin(otherTheta)+8*Math.cos(-otherTheta),5,5);
+                ellipse(pos[0]+30*Math.cos(otherTheta)-8*Math.sin(-otherTheta),pos[1]+30*Math.sin(otherTheta)-8*Math.cos(-otherTheta),5,5);
+                // ellipse(pos[0]+30*Math.cos(otherTheta),pos[1]+30*Math.sin(otherTheta),5,5);
             } else {
                 ellipse(pos[0]+25*Math.cos(otherTheta),pos[1]+25*Math.sin(otherTheta),5,5);
             }
