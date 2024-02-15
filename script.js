@@ -137,10 +137,65 @@ function processData(allText) {
     return lines;
 }
 function setup() {
-    let formula = prompt("Formula:");
+    createCanvas(1000,1000)
+    translate(500,500);
+    textSize(50);
+    strokeWeight(5);
+    textAlign(CENTER,CENTER);
+    ellipseMode(CENTER)
+    fill("black")
+    let formula = "CH4"//prompt("Formula:");
     print(sortCentral(formula))
-    print(lewis(formula))
-
+    let l =lewis(formula);
+    print(l)
+    renderLewis(l)
+}
+document.getElementById("submit").onclick = (e) => {
+    e.preventDefault();
+    console.log("GLOOPY");
+    let formula = document.getElementById("formula").value;
+    let l = lewis(formula);
+    print(l);
+    background(255);
+    renderLewis(l);
+}
+function renderLewis(structure) {
+    let stepDistance = 100;
+    text(structure.atoms[0],0,0);
+    console.log(structure.getNumBondsNoMultiplicity(0));
+    let numAED = [structure.getNumBondsNoMultiplicity(0)];
+    let numFilled = [0];
+    let positions = [[0,0]];
+    let offset = [0]
+    for (let j = 0; j < Math.ceil(structure.loneElectrons[0]/2); j ++) {
+        numFilled[0] += 1;
+    }
+    for (let i = 1; i < structure.atoms.length; i++) {
+        numAED.push(structure.getNumBondsNoMultiplicity(i)+Math.ceil(structure.loneElectrons[i]/2));
+        numFilled.push(1);
+        let theta = -numFilled[structure.bonds[i][0]]/numAED[structure.bonds[i][0]]*2*PI+offset[structure.bonds[i][0]];
+        offset.push(theta);
+        let pos = [positions[structure.bonds[i][0]][0]+stepDistance*Math.cos(theta),positions[structure.bonds[i][0]][1]+stepDistance*Math.sin(theta)];
+        positions.push(pos);
+        text(structure.atoms[i],pos[0],pos[1]);
+        for (let j = 0; j < structure.bonds[i].length; j++) {
+            line(positions[structure.bonds[i][0]][0]+30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(theta),positions[structure.bonds[i][0]][1]+30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta),pos[0]-30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(theta),pos[1]-30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta));
+        }
+        numFilled[structure.bonds[i][0]] += 1;
+        console.log(numAED[i]);
+        for (let j = 0; j < Math.ceil(structure.loneElectrons[i]/2); j ++) {
+            console.log(numFilled[i]);
+            let otherTheta = theta-(1+numFilled[i])/numAED[i]*2*PI;
+            if (structure.loneElectrons[i] % 2 == 0 || j < Math.ceil(structure.loneElectrons[i]/2)-1) {
+                ellipse(pos[0]+25*Math.cos(otherTheta)+8*Math.sin(otherTheta),pos[1]+25*Math.sin(otherTheta)+8*Math.cos(otherTheta),5,5);
+                ellipse(pos[0]+25*Math.cos(otherTheta)-8*Math.sin(otherTheta),pos[1]+25*Math.sin(otherTheta)-8*Math.cos(otherTheta),5,5);
+            } else {
+                ellipse(pos[0]+25*Math.cos(otherTheta),pos[1]+25*Math.sin(otherTheta),5,5);
+            }
+            numFilled[i] += 1;
+        }
+    }
+    return positions;
 }
 function getIndex(chemicalSymbol) {
     if (!chemicalSymbol) {
@@ -240,6 +295,25 @@ class LewisStructure {
         }
         return sum;
     }
+    getNumBondsNoMultiplicity(i) {
+        let sum = 0;
+        for (let j = 0; j < this.bonds.length; j++) {
+            if (j == i) {
+                // pretend no carbon rings
+                if (this.bonds[i].length > 0) {
+                    sum += 1;
+                }
+                continue;
+            }
+            for (let k = 0; k < this.bonds[j].length; k++) {
+                if (this.bonds[j][k] == i) {
+                    sum += 1;
+                    break;
+                }
+            }
+        }
+        return sum;
+    }
     totalElectrons() {
         let sum = 0;
         for (let i = 0; i < this.atoms.length; i++) {
@@ -264,26 +338,33 @@ class LewisStructure {
     loneElectrons;
 }
 let globalBestLewis;
-let sumFormalCharge = Infinity;
 let maxFormalCharge = Infinity;
 let minDistance = Infinity;
 let totalElectrons = 0;
+let globalBestBeforeElectrons = [];
 function lewis(formula) {
     sumFormalCharge = Infinity;
     maxFormalCharge = Infinity;
+    minDistance = Infinity;
+    let charge = 0;
+    if (formula[formula.length-1]=="]") {
+        let index = formula.indexOf("[");
+        formula = formula.slice(0,index);
+        let chargeWay = formula[index+1];
+        let num = parseInt(formula.substring(index+2,formula.length-1));
+        if (chargeWay == "-") {
+            num *= -1;
+        }
+        charge = num;
+    }
     let centrals = sortCentral(formula);
     globalBestLewis = null;
-    recursiveAtomLewis(new LewisStructure(centrals[0]),JSON.parse(JSON.stringify(centrals)).slice(1));
-    return globalBestLewis
-}
-function calculateSumFormalCharge(structure) {
-    let charge = 0;
-    for (let i = 0; i < structure.atoms.length; i++) {
-        let valElectrons = parseInt(getData(structure.atoms[i],"NumberofValence"));
-        let numBonds = structure.getNumBonds(i);
-        charge += valElectrons - structure.loneElectrons[i] - numBonds;
-    }
-    return charge;
+    recursiveAtomLewis(new LewisStructure(centrals[0]),JSON.parse(JSON.stringify(centrals)).slice(1),charge);
+    let best = new LewisStructure("");
+    best.atoms = globalBestLewis.atoms;
+    best.bonds = globalBestLewis.bonds;
+    best.loneElectrons = globalBestLewis.loneElectrons;
+    return best;
 }
 function calculateMaxAbsFormalCharge(structure) {
     let charge = 0;
@@ -306,51 +387,63 @@ function calculateDistanceToOctetDuet(structure) {
     }
     return distance;
 }
+function calculateDistanceToOctetDuetNoElectronsPlaced(structure) {
+    let distance = 0;
+    for (let i = 0; i < structure.atoms.length; i++) {
+        let numBonds = structure.getNumBonds(i);
+        distance += ((structure.atoms[i]=="H"||structure.atoms[i]=="He") ? 2 : 8) - parseInt(getData(structure.atoms[i],"NumberofValence")) + numBonds;
+    }
+    return distance;
+}
+
+// totalDistance = total eights - total lones - bonds*4 = total eights - total electrons + 2*total bonds
 
 // TODO: ONLY DO THIS IF NEEDED (I.E. WHEN PROCESSING IS FINISHED)
-function recursiveAddElectrons(structure,num) {
+function recursiveAddElectrons(structure,num,last=0) {
     if (num < 0) {
         return;
     }
     if (num == 0) {
         let distance = calculateDistanceToOctetDuet(structure);
-        let fc = calculateSumFormalCharge(structure);
         let mafc = calculateMaxAbsFormalCharge(structure);
         if (distance < minDistance) {
             minDistance = distance;
             globalBestLewis = JSON.parse(JSON.stringify(structure));
-            sumFormalCharge = fc;
             maxFormalCharge = mafc;
         } else if (distance == minDistance) {
-            if (Math.abs(fc) < sumFormalCharge) {
-                sumFormalCharge = JSON.parse(JSON.stringify(fc));
+            if (mafc < maxFormalCharge) {
+                maxFormalCharge = mafc;
                 globalBestLewis = JSON.parse(JSON.stringify(structure));
-                maxFormalCharge = mafc
-            } else if (Math.abs(fc) == sumFormalCharge) {
-                if (mafc < maxFormalCharge) {
-                    maxFormalCharge = mafc;
-                    globalBestLewis = JSON.parse(JSON.stringify(structure));
-                }
             }
         }
         return;
     }
-    for (let i = 0; i < structure.atoms.length; i++) {
+    for (let i = last; i < structure.atoms.length; i++) {
+        if (getData(structure.atoms[i],"Period") <= 3&& structure.loneElectrons[i]+structure.getNumBonds(i)*2>= 8) {
+            recursiveAddElectrons(structure,num,i+1);
+            continue;
+        }
         structure.loneElectrons[i] += 1;
-        recursiveAddElectrons(structure,num-1);
+        recursiveAddElectrons(structure,num-1,i);
         structure.loneElectrons[i] -= 1;
     }
 }
-function recursiveAtomLewis(currentStructure,atomsLeft) {
+async function recursiveAtomLewis(currentStructure,atomsLeft,charge) {
     if (atomsLeft.length == 0) {
-        recursiveAddElectrons(currentStructure,currentStructure.electronsLeft());
+        // let distance = calculateDistanceToOctetDuetNoElectrons(currentStructure);
+        recursiveAddElectrons(currentStructure,currentStructure.electronsLeft()-charge);
         currentStructure.removeAllElectrons();
         return;
     }
     for (let i = 0; i < currentStructure.atoms.length; i++) {
-        for (let j = 1; j <= 3; j++) {
+        let mustOctetDuet = getData(currentStructure.atoms[i],"Period") <= 3;
+        let bonds = currentStructure.getNumBonds(i);
+        if ((mustOctetDuet && bonds >= 4)) {
+            continue;
+        }
+        for (let j = 1; (mustOctetDuet && (j <= 4-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
             currentStructure.addAtom(atomsLeft[0], i,j);
-            recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1));
+            recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1),charge);
             currentStructure.popAtom();
         }
     }
