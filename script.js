@@ -446,7 +446,7 @@ async function recursiveAtomLewis(currentStructure,atomsLeft,charge) {
         if ((mustOctetDuet && bonds >= 4)) {
             continue;
         }
-        for (let j = 1; (mustOctetDuet && (j <= 4-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
+        for (let j = 1; (mustOctetDuet && (j <= 3-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
             currentStructure.addAtom(atomsLeft[0], i,j);
             recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1),charge);
             currentStructure.popAtom();
