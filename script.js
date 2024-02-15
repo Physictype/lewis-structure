@@ -144,7 +144,7 @@ function setup() {
     textAlign(CENTER,CENTER);
     ellipseMode(CENTER)
     fill("black")
-    let formula = "CH4"//prompt("Formula:");
+    let formula = "XeF4"//prompt("Formula:");
     print(sortCentral(formula))
     let l =lewis(formula);
     print(l)
@@ -152,6 +152,7 @@ function setup() {
 }
 document.getElementById("submit").onclick = (e) => {
     e.preventDefault();
+    console.log("GLOOPY");
     let formula = document.getElementById("formula").value;
     let l = lewis(formula);
     print(l);
@@ -161,12 +162,13 @@ document.getElementById("submit").onclick = (e) => {
 function renderLewis(structure) {
     let stepDistance = 100;
     text(structure.atoms[0],0,0);
+    console.log(structure.getNumBondsNoMultiplicity(0));
     let numAED = [structure.getNumBondsNoMultiplicity(0)+Math.ceil(structure.loneElectrons[0]/2)];
     let numFilled = [0];
     let positions = [[0,0]];
     let offset = [0]
     for (let j = 0; j < Math.ceil(structure.loneElectrons[0]/2); j ++) {
-        let otherTheta = -(numFilled[0])/numAED[0]*2*PI;
+        let otherTheta = (numFilled[0])/numAED[0]*2*PI;
         if (structure.loneElectrons[0] % 2 == 0 || j < Math.ceil(structure.loneElectrons[0]/2)-1) {
             ellipse(35*Math.cos(otherTheta)+8*Math.sin(-otherTheta),35*Math.sin(otherTheta)+8*Math.cos(-otherTheta),5,5);
             ellipse(35*Math.cos(otherTheta)-8*Math.sin(-otherTheta),35*Math.sin(otherTheta)-8*Math.cos(-otherTheta),5,5);
@@ -179,16 +181,18 @@ function renderLewis(structure) {
     for (let i = 1; i < structure.atoms.length; i++) {
         numAED.push(structure.getNumBondsNoMultiplicity(i)+Math.ceil(structure.loneElectrons[i]/2));
         numFilled.push(1);
-        let theta = -numFilled[structure.bonds[i][0]]/numAED[structure.bonds[i][0]]*2*PI+offset[structure.bonds[i][0]];
+        let theta = numFilled[structure.bonds[i][0]]/numAED[structure.bonds[i][0]]*2*PI+PI+offset[structure.bonds[i][0]];
         offset.push(theta);
         let pos = [positions[structure.bonds[i][0]][0]+stepDistance*Math.cos(theta),positions[structure.bonds[i][0]][1]+stepDistance*Math.sin(theta)];
         positions.push(pos);
         text(structure.atoms[i],pos[0],pos[1]);
         for (let j = 0; j < structure.bonds[i].length; j++) {
-            line(positions[structure.bonds[i][0]][0]+30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(theta),positions[structure.bonds[i][0]][1]+30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta),pos[0]-30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(theta),pos[1]-30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta));
+            line(positions[structure.bonds[i][0]][0]+30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(-theta),positions[structure.bonds[i][0]][1]+30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(theta),pos[0]-30*Math.cos(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.sin(-theta),pos[1]-30*Math.sin(theta)+10*(-(structure.bonds[i].length-1)/2+j)*Math.cos(-theta));
         }
         numFilled[structure.bonds[i][0]] += 1;
+        console.log(numAED[i]);
         for (let j = 0; j < Math.ceil(structure.loneElectrons[i]/2); j ++) {
+            console.log(numFilled[i],numAED[i]);
             let otherTheta = theta+(numFilled[i])/numAED[i]*2*PI+PI;
             if (structure.loneElectrons[i] % 2 == 0 || j < Math.ceil(structure.loneElectrons[i]/2)-1) {
                 ellipse(pos[0]+30*Math.cos(otherTheta)+8*Math.sin(-otherTheta),pos[1]+30*Math.sin(otherTheta)+8*Math.cos(-otherTheta),5,5);
@@ -446,7 +450,7 @@ async function recursiveAtomLewis(currentStructure,atomsLeft,charge) {
         if ((mustOctetDuet && bonds >= 4)) {
             continue;
         }
-        for (let j = 1; (mustOctetDuet && (j <= 3-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
+        for (let j = 1; (mustOctetDuet && (j <= 4-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
             currentStructure.addAtom(atomsLeft[0], i,j);
             recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1),charge);
             currentStructure.popAtom();
