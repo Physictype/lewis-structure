@@ -168,7 +168,7 @@ function renderLewis(structure) {
     let positions = [[0,0]];
     let offset = [0]
     for (let j = 0; j < Math.ceil(structure.loneElectrons[0]/2); j ++) {
-        let otherTheta = (numFilled[0])/numAED[0]*2*PI;
+        let otherTheta = -(numFilled[0])/numAED[0]*2*PI+PI;
         if (structure.loneElectrons[0] % 2 == 0 || j < Math.ceil(structure.loneElectrons[0]/2)-1) {
             ellipse(35*Math.cos(otherTheta)+8*Math.sin(-otherTheta),35*Math.sin(otherTheta)+8*Math.cos(-otherTheta),5,5);
             ellipse(35*Math.cos(otherTheta)-8*Math.sin(-otherTheta),35*Math.sin(otherTheta)-8*Math.cos(-otherTheta),5,5);
@@ -181,7 +181,7 @@ function renderLewis(structure) {
     for (let i = 1; i < structure.atoms.length; i++) {
         numAED.push(structure.getNumBondsNoMultiplicity(i)+Math.ceil(structure.loneElectrons[i]/2));
         numFilled.push(1);
-        let theta = numFilled[structure.bonds[i][0]]/numAED[structure.bonds[i][0]]*2*PI+PI+offset[structure.bonds[i][0]];
+        let theta = -numFilled[structure.bonds[i][0]]/numAED[structure.bonds[i][0]]*2*PI+offset[structure.bonds[i][0]]+PI;
         offset.push(theta);
         let pos = [positions[structure.bonds[i][0]][0]+stepDistance*Math.cos(theta),positions[structure.bonds[i][0]][1]+stepDistance*Math.sin(theta)];
         positions.push(pos);
@@ -193,7 +193,7 @@ function renderLewis(structure) {
         console.log(numAED[i]);
         for (let j = 0; j < Math.ceil(structure.loneElectrons[i]/2); j ++) {
             console.log(numFilled[i],numAED[i]);
-            let otherTheta = theta+(numFilled[i])/numAED[i]*2*PI+PI;
+            let otherTheta = theta-(numFilled[i])/numAED[i]*2*PI+PI;
             if (structure.loneElectrons[i] % 2 == 0 || j < Math.ceil(structure.loneElectrons[i]/2)-1) {
                 ellipse(pos[0]+30*Math.cos(otherTheta)+8*Math.sin(-otherTheta),pos[1]+30*Math.sin(otherTheta)+8*Math.cos(-otherTheta),5,5);
                 ellipse(pos[0]+30*Math.cos(otherTheta)-8*Math.sin(-otherTheta),pos[1]+30*Math.sin(otherTheta)-8*Math.cos(-otherTheta),5,5);
@@ -450,7 +450,7 @@ async function recursiveAtomLewis(currentStructure,atomsLeft,charge) {
         if ((mustOctetDuet && bonds >= 4)) {
             continue;
         }
-        for (let j = 1; (mustOctetDuet && (j <= 4-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
+        for (let j = 1; (mustOctetDuet && (j <= 3-bonds))||(!mustOctetDuet && (j <= 6-bonds)); j++) {
             currentStructure.addAtom(atomsLeft[0], i,j);
             recursiveAtomLewis(currentStructure,JSON.parse(JSON.stringify(atomsLeft)).slice(1),charge);
             currentStructure.popAtom();
